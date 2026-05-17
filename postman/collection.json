@@ -1,0 +1,215 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Payments API",
+    "description": "Colección completa para probar el sistema de pagos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "usuario_id", "value": "" },
+    { "key": "tarjeta_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check - API",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Crear Usuario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('usuario_id', json.data.id);",
+                  "  console.log('usuario_id guardado:', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan Pérez\",\n  \"email\": \"juan@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Obtener Usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/usuarios/{{usuario_id}}"
+          }
+        },
+        {
+          "name": "Crear Usuario - Email duplicado (error 409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otro Usuario\",\n  \"email\": \"juan@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Crear Usuario - Datos inválidos (error 422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"email\": \"no-es-un-email\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tarjetas",
+      "item": [
+        {
+          "name": "Registrar Tarjeta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.id) {",
+                  "  pm.collectionVariables.set('tarjeta_id', json.data.id);",
+                  "  console.log('tarjeta_id guardado:', json.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/{{usuario_id}}/tarjetas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titular\": \"JUAN PEREZ\",\n  \"numero_tarjeta\": \"4111111111111111\",\n  \"marca\": \"visa\",\n  \"mes_expiracion\": 12,\n  \"anio_expiracion\": 2027\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Tarjetas del Usuario",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/usuarios/{{usuario_id}}/tarjetas"
+          }
+        },
+        {
+          "name": "Registrar Tarjeta - Usuario inexistente (error 404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/usuarios/00000000-0000-0000-0000-000000000000/tarjetas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titular\": \"TEST\",\n  \"numero_tarjeta\": \"5500005555555559\",\n  \"marca\": \"mastercard\",\n  \"mes_expiracion\": 6,\n  \"anio_expiracion\": 2026\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pagos",
+      "item": [
+        {
+          "name": "Crear Pago",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pagos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"{{usuario_id}}\",\n  \"tarjeta_id\": \"{{tarjeta_id}}\",\n  \"monto\": 150.00,\n  \"moneda\": \"USD\",\n  \"descripcion\": \"Compra en tienda online\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Historial de Pagos del Usuario",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{usuario_id}}/pagos",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{usuario_id}}", "pagos"]
+            }
+          }
+        },
+        {
+          "name": "Historial - Filtrar por estado aprobado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{usuario_id}}/pagos?estado=aprobado",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{usuario_id}}", "pagos"],
+              "query": [{ "key": "estado", "value": "aprobado" }]
+            }
+          }
+        },
+        {
+          "name": "Historial - Filtrar por estado rechazado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/{{usuario_id}}/pagos?estado=rechazado",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "{{usuario_id}}", "pagos"],
+              "query": [{ "key": "estado", "value": "rechazado" }]
+            }
+          }
+        },
+        {
+          "name": "Crear Pago - Tarjeta no pertenece al usuario (error 404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pagos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"{{usuario_id}}\",\n  \"tarjeta_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"monto\": 50.00\n}"
+            }
+          }
+        },
+        {
+          "name": "Crear Pago - Monto inválido (error 422)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/pagos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": \"{{usuario_id}}\",\n  \"tarjeta_id\": \"{{tarjeta_id}}\",\n  \"monto\": -100\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+openapi: '3.0.3'
+info:
+  title: Payments API
+  description: API REST para el sistema de pagos — Node.js + PostgreSQL + FastAPI
+  version: '1.0.0'
+tags:
+  - name: Usuarios
+  - name: Tarjetas
+  - name: Pagos
+  - name: Health
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: Servicio en línea
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  uptime: { type: number }
+
+  /api/usuarios:
+    post:
+      tags: [Usuarios]
+      summary: Crear usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, email]
+              properties:
+                nombre: { type: string, example: 'Juan Pérez' }
+                email: { type: string, format: email, example: 'juan@example.com' }
+      responses:
+        '201': { description: Usuario creado }
+        '409': { description: Email ya registrado }
+        '422': { description: Datos inválidos }
+
+  /api/usuarios/{id}:
+    get:
+      tags: [Usuarios]
+      summary: Obtener usuario por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Usuario encontrado }
+        '404': { description: No encontrado }
+
+  /api/usuarios/{id}/tarjetas:
+    post:
+      tags: [Tarjetas]
+      summary: Registrar tarjeta
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titular, numero_tarjeta, marca, mes_expiracion, anio_expiracion]
+              properties:
+                titular: { type: string, example: 'JUAN PEREZ' }
+                numero_tarjeta: { type: string, example: '4111111111111111' }
+                marca: { type: string, enum: [visa, mastercard, amex, discover] }
+                mes_expiracion: { type: integer, minimum: 1, maximum: 12, example: 12 }
+                anio_expiracion: { type: integer, minimum: 2024, example: 2027 }
+      responses:
+        '201': { description: Tarjeta registrada }
+        '404': { description: Usuario no encontrado }
+        '422': { description: Datos inválidos }
+    get:
+      tags: [Tarjetas]
+      summary: Listar tarjetas del usuario
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Lista de tarjetas }
+        '404': { description: Usuario no encontrado }
+
+  /api/pagos:
+    post:
+      tags: [Pagos]
+      summary: Crear pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [usuario_id, tarjeta_id, monto]
+              properties:
+                usuario_id: { type: string, format: uuid }
+                tarjeta_id: { type: string, format: uuid }
+                monto: { type: number, example: 150.00 }
+                moneda: { type: string, example: USD, default: USD }
+                descripcion: { type: string, example: 'Compra en tienda online' }
+      responses:
+        '201': { description: Pago aprobado }
+        '200': { description: Pago rechazado por procesador }
+        '404': { description: Usuario o tarjeta no encontrado }
+        '503': { description: Servicio de pagos no disponible }
+
+  /api/usuarios/{id}/pagos:
+    get:
+      tags: [Pagos]
+      summary: Historial de pagos del usuario
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: estado
+          schema: { type: string, enum: [aprobado, rechazado, pendiente] }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        '200': { description: Historial de pagos }
+        '404': { description: Usuario no encontrado }
